@@ -1,5 +1,5 @@
 {
-  "name": "bound",
+  "name": "lofte",
   "version": "1.0.0",
   "description": "A promise library implemanting the Promises/A+ specification and more",
   "main": "index.js",
@@ -11,7 +11,8 @@
     "url": "git+https://github.com/PoroShadows/Bound.git"
   },
   "keywords": [
-    "Bound",
+    "Löfte",
+    "Lofte",
     "Promise"
   ],
   "author": "Martin Hövre <sickan843@live.se>",
