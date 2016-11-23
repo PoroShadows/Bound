@@ -1,15 +1,15 @@
 
 /**
- * Bound is a Promise polyfill
+ * Lofte is a Promise polyfill
  *
  * The function onCancel takes a function that runs when the promise is canceled
  *
  * @param {function(resolve, reject, onCancel)} resolver
- * @returns {Bound}
+ * @returns {Lofte}
  * @public
  * @constructor
  */
-function Bound(resolver) {
+function Lofte(resolver) {
     /**
      * @callback then
      * @param {*} value
@@ -160,11 +160,11 @@ function Bound(resolver) {
      *
      * @param {then} [onResolved]
      * @param {catch} [onRejected]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.then = function (onResolved, onRejected) {
-        return new Bound(function (resolve, reject) {
+        return new Lofte(function (resolve, reject) {
             handle({
                 onResolved: onResolved,
                 onRejected: onRejected,
@@ -181,11 +181,11 @@ function Bound(resolver) {
      * Catch only if it is a specific error *.catch(type, onRejected)
      *
      * @param {catch} [onRejected]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.catch = function (onRejected) {
-        return new Bound(function (resolve, reject) {
+        return new Lofte(function (resolve, reject) {
             handle({
                 onResolved: undefined,
                 onRejected: onRejected,
@@ -204,7 +204,7 @@ function Bound(resolver) {
      *
      * @param {then} [onResolved]
      * @param {catch} [onRejected]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.try = function (onResolved, onRejected) {
@@ -264,7 +264,7 @@ function Bound(resolver) {
      *
      * @param {Function} fn
      * @param {*} [ctx]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.map = function (fn, ctx) {
@@ -279,7 +279,7 @@ function Bound(resolver) {
      *
      * @param {Function} fn
      * @param {*} [ctx]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.reduce = function (fn, ctx) {
@@ -294,7 +294,7 @@ function Bound(resolver) {
      *
      * @param {Function} fn
      * @param {*} [ctx]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.filter = function (fn, ctx) {
@@ -309,7 +309,7 @@ function Bound(resolver) {
      *
      * @param {Function} fn
      * @param {*} [ctx]
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.some = function (fn, ctx) {
@@ -324,11 +324,11 @@ function Bound(resolver) {
      * Delay the execution by x amount of milliseconds.
      *
      * @param {Number} ms
-     * @returns {Bound}
+     * @returns {Lofte}
      * @public
      */
     this.delay = function (ms) {
-        return new Bound(function (resolve) {
+        return new Lofte(function (resolve) {
             setTimeout(function () {
                 resolve(this)
             }, ms)
@@ -340,27 +340,27 @@ function Bound(resolver) {
 }
 
 /**
- * Bound.all passes an array of values from
+ * Lofte.all passes an array of values from
  * all the promises in the array object that it was
  * passed. The array of values maintains the order of the
  * original iterable object, not the order that the
  * promises were resolved in. If something passed in the
  * iterable array is not a promise, it's converted to one
- * by {@see Bound.resolve}.
+ * by {@see Lofte.resolve}.
  *
  * If any of the passed in promises rejects, the all
- * Bound immediately rejects with the value of the
+ * Lofte immediately rejects with the value of the
  * promise that rejected, discarding all the other promises
  * whether or not they have resolved. If an empty array is
  * passed, then this method resolves immediately.
  *
- * @param {Array<Bound|*>|Generator|Function|Iterator} iterable
- * @returns {Bound}
+ * @param {Array<Lofte|*>|Generator|Function|Iterator} iterable
+ * @returns {Lofte}
  * @public
  * @static
  */
-Bound.all = function (iterable) {
-    return new Bound(function (resolve, reject) {
+Lofte.all = function (iterable) {
+    return new Lofte(function (resolve, reject) {
         var each = (function () {
             function res(value) {
                 values[this] = value
@@ -370,7 +370,7 @@ Bound.all = function (iterable) {
             }
             return function (value) {
                 //noinspection JSCheckFunctionSignatures
-                Bound.resolve(value).then(res.bind(idx++)).catch(reject)
+                Lofte.resolve(value).then(res.bind(idx++)).catch(reject)
             }
         })()
         var values = [], resolved = []
@@ -388,18 +388,18 @@ Bound.all = function (iterable) {
     })
 }
 /**
- * The race function returns a Bound that is settled
+ * The race function returns a Lofte that is settled
  * the same way as the first passed water stream to settle.
  * It resolves or rejects, whichever happens first.
  *
- * @param {Array<Bound|*>|Generator|Function|Iterator} iterable
- * @returns {Bound}
+ * @param {Array<Lofte|*>|Generator|Function|Iterator} iterable
+ * @returns {Lofte}
  * @since 1.0
  * @public
  * @static
  */
-Bound.race = function (iterable) {
-    return new Bound(function (resolve, reject) {
+Lofte.race = function (iterable) {
+    return new Lofte(function (resolve, reject) {
         //noinspection JSValidateTypes
         if (typeof iterable === 'function' && typeof iterable().next === 'function' || typeof iterable.next === 'function') {
             //noinspection JSValidateTypes
@@ -413,37 +413,37 @@ Bound.race = function (iterable) {
             each(iterable[i])
         function each(value) {
             //noinspection JSCheckFunctionSignatures
-            Bound.resolve(value).then(resolve).catch(reject)
+            Lofte.resolve(value).then(resolve).catch(reject)
         }
     })
 }
 /**
- * Returns a Bound that is rejected. For debugging purposes
+ * Returns a Lofte that is rejected. For debugging purposes
  * and selective error catching, it is useful to make reason
  * an instanceof {@see Error}.
  *
  * @param {Error|String|*} [reason]
- * @returns {Bound}
+ * @returns {Lofte}
  * @since 1.0
  * @public
  * @static
  */
-Bound.reject = function (reason) {
-    return new Bound(function (resolve, reject) {
+Lofte.reject = function (reason) {
+    return new Lofte(function (resolve, reject) {
         reject(reason)
     })
 }
 /**
- * Returns a Bound that is resolved.
+ * Returns a Lofte that is resolved.
  *
- * @param {*|Bound} [value]
- * @returns {Bound}
+ * @param {*|Lofte} [value]
+ * @returns {Lofte}
  * @since 1.0
  * @public
  * @static
  */
-Bound.resolve = function (value) {
-    return new Bound(function (resolve) {
+Lofte.resolve = function (value) {
+    return new Lofte(function (resolve) {
         resolve(value)
     })
 }
@@ -459,13 +459,13 @@ Bound.resolve = function (value) {
  * @returns {Function}
  * @public
  */
-Bound.promisify = function (fn, argumentCount, hasErrorPar) {
+Lofte.promisify = function (fn, argumentCount, hasErrorPar) {
     argumentCount = argumentCount || Infinity
     hasErrorPar = hasErrorPar || true
     return function () {
         const self = this
         const args = Array.prototype.slice.call(arguments)
-        return new Bound(function (resolve, reject) {
+        return new Lofte(function (resolve, reject) {
             while (args.length && args.length > argumentCount) args.pop()
             args.push(function (err, res) {
                 if (!hasErrorPar)//noinspection JSUnresolvedFunction
@@ -484,17 +484,17 @@ Bound.promisify = function (fn, argumentCount, hasErrorPar) {
  * generator after the first parameter.
  *
  * @param {Generator|Function} generator
- * @returns {Bound}
+ * @returns {Lofte}
  * @public
  */
-Bound.flow = function (generator) {
+Lofte.flow = function (generator) {
     var args = Array.prototype.splice.call(arguments, 1)
     if (typeof generator === 'function') //noinspection JSUnresolvedFunction
         generator = generator.apply(this, args)
     var iterate = function (iteration) {
         //noinspection JSUnresolvedVariable
-        if (iteration.done) return Bound.resolve(iteration.value)
-        return Bound[Array.isArray(iteration.value) ? 'all' : 'resolve'](iteration.value)
+        if (iteration.done) return Lofte.resolve(iteration.value)
+        return Lofte[Array.isArray(iteration.value) ? 'all' : 'resolve'](iteration.value)
             .then(exec.bind('next'))
             .catch(exec.bind('throw'))
     }
@@ -505,10 +505,10 @@ Bound.flow = function (generator) {
 }
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-    module.exports = Bound
+    module.exports = Lofte
 else//noinspection JSUnresolvedVariable
 if (typeof define === 'function' && define.amd) //noinspection JSUnresolvedFunction,JSCheckFunctionSignatures
-    define('Bound', [], function () {
-        return Bound
+    define('Lofte', [], function () {
+        return Lofte
     })
-else window.Bound = Bound
+else window.Lofte = Lofte
