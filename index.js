@@ -1,4 +1,4 @@
-
+//noinspection SpellCheckingInspection
 /**
  * Lofte is a Promise polyfill
  *
@@ -25,59 +25,12 @@ function Lofte(resolver) {
      * @param {(null|Error|String|*)} [error]
      * @param {*} [value]
      */
-    var state = 'pending'
+    // 0 = pending, 1 = resolved, 2 = rejected, 3 = fulfilled, 4 = canceled
+    var state = 0
     var value
     var deferred
     var cancellationFunction
-
-    //noinspection JSUnusedGlobalSymbols
-    /**
-     * If the promise has fulfilled
-     *
-     * @returns {Boolean}
-     * @public
-     */
-    this.isFulfilled = function () {
-        return state == 'fulfilled'
-    }
-    //noinspection JSUnusedGlobalSymbols
-    /**
-     * If the promise is pending
-     *
-     * @returns {Boolean}
-     * @public
-     */
-    this.isPending = function () {
-        return state == 'pending'
-    }
-    //noinspection JSUnusedGlobalSymbols
-    /**
-     * If the promise has rejected
-     *
-     * @returns {Boolean}
-     * @public
-     */
-    this.isRejected = function () {
-        return state == 'rejected'
-    }
-    //noinspection JSUnusedGlobalSymbols
-    /**
-     * If the promise has resolved
-     *
-     * @returns {Boolean}
-     * @public
-     */
-    this.isResolved = function () {
-        return state == 'resolved'
-    }
-    /**
-     * Returns if the promise is cancelable
-     *
-     * @returns {Boolean}
-     */
-    this.isCancelable = function () {
-        return cancellationFunction != undefined
-    }
+    var done = false
 
     /**
      * Specify the function called when the promise is canceled.
@@ -102,7 +55,7 @@ function Lofte(resolver) {
         try {
             if (newValue && typeof newValue.then === 'function')
                 return newValue.then(resolve, reject)
-            state = 'resolved'
+            state = 1
             value = newValue
 
             if (deferred)
@@ -120,15 +73,24 @@ function Lofte(resolver) {
      * @public
      */
     function reject(reason) {
-        state = 'rejected'
+        state = 2
         value = reason
 
         if (deferred)
             handle(deferred)
     }
 
+    /**
+     * The central handler
+     *
+     * @param {Object} handler
+     * @param {Function} handler.onResolved
+     * @param {Function} handler.onRejected
+     * @param {Function} handler.resolve
+     * @param {Function} handler.reject
+     */
     function handle(handler) {
-        if (state === 'pending')
+        if (state === 0)
             return deferred = handler
         if (typeof process !== 'undefined')
             process.nextTick(exec)
@@ -136,25 +98,29 @@ function Lofte(resolver) {
             setTimeout(exec, 1)
 
         function exec() {
-            var isResolved = state === 'resolved',
-                handlerFN = isResolved ? handler.onResolved : handler.onRejected
+            if (!done) {
+                done = true
+                var isResolved = state === 1,
+                    handlerFN = isResolved ? handler.onResolved : handler.onRejected
 
-            if (!handlerFN)
-                return handler[isResolved ? 'resolve' : 'reject'](value)
+                if (!handlerFN)
+                    return handler[isResolved ? 'resolve' : 'reject'](value)
 
-            var ret
-            try {
-                ret = handlerFN(value)
-                if (state !== 'fulfilled')
-                    handler.resolve(ret)
-            } catch (e) {
-                if (state !== 'fulfilled')
-                    handler.reject(e)
+                var ret
+                try {
+                    ret = handlerFN(value)
+                    if (state > 3)
+                        handler.resolve(ret)
+                } catch (e) {
+                    if (state > 3)
+                        handler.reject(e)
+                }
+                if (state > 3) state = 3
             }
-            state = 'fulfilled'
         }
     }
 
+    //noinspection SpellCheckingInspection
     /**
      * Resolve what to do with the value
      *
@@ -165,6 +131,7 @@ function Lofte(resolver) {
      */
     this.then = function (onResolved, onRejected) {
         return new Lofte(function (resolve, reject) {
+            //noinspection JSCheckFunctionSignatures
             handle({
                 onResolved: onResolved,
                 onRejected: onRejected,
@@ -173,6 +140,7 @@ function Lofte(resolver) {
             })
         })
     }
+    //noinspection SpellCheckingInspection
     /**
      * Can be useful for error handling in your promise
      * composition.
@@ -185,30 +153,79 @@ function Lofte(resolver) {
      * @public
      */
     this.catch = function (onRejected) {
-        return new Lofte(function (resolve, reject) {
-            handle({
-                onResolved: undefined,
-                onRejected: onRejected,
-                resolve: resolve,
-                reject: reject
-            })
-        })
+        return this.then(null, onRejected)
     }
 
     //noinspection JSUnusedGlobalSymbols
     /**
      * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
      *
-     * Ensure error catch handles by the onRejected function
+     * If the promise is pending
      *
-     * @param {then} [onResolved]
-     * @param {catch} [onRejected]
-     * @returns {Lofte}
+     * @returns {Boolean}
      * @public
      */
-    this.try = function (onResolved, onRejected) {
-        return this.then(onResolved).catch(onRejected)
+    this.isPending = function () {
+        return state == 0
+    }
+    //noinspection JSUnusedGlobalSymbols
+    /**
+     * NOT STANDARD
+     *
+     * If the promise has resolved
+     *
+     * @returns {Boolean}
+     * @public
+     */
+    this.isResolved = function () {
+        return state == 1
+    }
+    //noinspection JSUnusedGlobalSymbols
+    /**
+     * NOT STANDARD
+     *
+     * If the promise has rejected
+     *
+     * @returns {Boolean}
+     * @public
+     */
+    this.isRejected = function () {
+        return state == 2
+    }
+    //noinspection JSUnusedGlobalSymbols
+    /**
+     * NOT STANDARD
+     *
+     * If the promise has fulfilled
+     *
+     * @returns {Boolean}
+     * @public
+     */
+    this.isFulfilled = function () {
+        return state == 3
+    }
+    //noinspection JSUnusedGlobalSymbols
+    /**
+     * NOT STANDARD
+     *
+     * If the promise has resolved
+     *
+     * @returns {Boolean}
+     * @public
+     */
+    this.isCanceled = function () {
+        return state == 4
+    }
+    /**
+     * NOT STANDARD
+     *
+     * Returns if the promise is cancelable
+     *
+     * @returns {Boolean}
+     * @public
+     */
+    this.isCancelable = function () {
+        return cancellationFunction != undefined
     }
     /**
      * NOT STANDARD
@@ -242,7 +259,7 @@ function Lofte(resolver) {
     this.cancel = function() {
         if (this.isCancelable()) {
             cancellationFunction()
-            state = 'canceled'
+            state = 4
         } else console.error(new ReferenceError('Tried to cancel non cancellable promise'))
     }
     function arrayWrapper(fn, ctx, func) {
@@ -256,6 +273,7 @@ function Lofte(resolver) {
         }
     }
 
+    //noinspection SpellCheckingInspection
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -271,6 +289,7 @@ function Lofte(resolver) {
         arrayWrapper(fn, ctx, 'map')
         return this
     }
+    //noinspection SpellCheckingInspection
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -286,6 +305,7 @@ function Lofte(resolver) {
         arrayWrapper(fn, ctx, 'reduce')
         return this
     }
+    //noinspection SpellCheckingInspection
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -301,6 +321,7 @@ function Lofte(resolver) {
         arrayWrapper(fn, ctx, 'filter')
         return this
     }
+    //noinspection SpellCheckingInspection
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -316,7 +337,7 @@ function Lofte(resolver) {
         arrayWrapper(fn, ctx, 'some')
         return this
     }
-    //noinspection JSUnusedGlobalSymbols
+    //noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -339,6 +360,39 @@ function Lofte(resolver) {
     resolver(resolve, reject, onCancel)
 }
 
+//noinspection SpellCheckingInspection
+/**
+ * Returns a Lofte that is resolved.
+ *
+ * @param {*|Lofte} [value]
+ * @returns {Lofte}
+ * @since 1.0
+ * @public
+ * @static
+ */
+Lofte.resolve = function (value) {
+    return new Lofte(function (resolve) {
+        resolve(value)
+    })
+}
+//noinspection SpellCheckingInspection
+/**
+ * Returns a Lofte that is rejected. For debugging purposes
+ * and selective error catching, it is useful to make reason
+ * an instanceof {@see Error}.
+ *
+ * @param {Error|String|*} [reason]
+ * @returns {Lofte}
+ * @since 1.0
+ * @public
+ * @static
+ */
+Lofte.reject = function (reason) {
+    return new Lofte(function (resolve, reject) {
+        reject(reason)
+    })
+}
+//noinspection SpellCheckingInspection,JSValidateJSDoc
 /**
  * Lofte.all passes an array of values from
  * all the promises in the array object that it was
@@ -365,7 +419,7 @@ Lofte.all = function (iterable) {
             function res(value) {
                 values[this] = value
                 resolved.push(this)
-                if (values.length === resolved.length)
+                if (resolved.length === idx)
                     resolve(values)
             }
             return function (value) {
@@ -376,10 +430,12 @@ Lofte.all = function (iterable) {
         var values = [], resolved = []
         var idx = 0
 
+        //noinspection JSUnresolvedVariable
         if (typeof iterable === 'function' && typeof iterable().next === 'function' || typeof iterable.next === 'function') {
+            //noinspection JSUnresolvedVariable
             var iterator = typeof iterable.next === 'function' ? iterable : iterable()
             var iteration
-            //noinspection JSUnresolvedVariable
+            //noinspection JSUnresolvedVariable,JSUnresolvedFunction
             while (!(iteration = iterator.next()).done)
                 each(iteration.value)
         }
@@ -387,6 +443,7 @@ Lofte.all = function (iterable) {
             each(iterable[i])
     })
 }
+//noinspection JSValidateJSDoc,SpellCheckingInspection
 /**
  * The race function returns a Lofte that is settled
  * the same way as the first passed water stream to settle.
@@ -400,12 +457,12 @@ Lofte.all = function (iterable) {
  */
 Lofte.race = function (iterable) {
     return new Lofte(function (resolve, reject) {
-        //noinspection JSValidateTypes
+        //noinspection JSValidateTypes,JSUnresolvedVariable
         if (typeof iterable === 'function' && typeof iterable().next === 'function' || typeof iterable.next === 'function') {
-            //noinspection JSValidateTypes
+            //noinspection JSValidateTypes,JSUnresolvedVariable
             var iterator = typeof iterable.next === 'function' ? iterable : iterable()
             var iteration
-            //noinspection JSUnresolvedVariable
+            //noinspection JSUnresolvedVariable,JSUnresolvedFunction
             while (!(iteration = iterator.next()).done)
                 each(iteration.value)
         }
@@ -417,38 +474,10 @@ Lofte.race = function (iterable) {
         }
     })
 }
-/**
- * Returns a Lofte that is rejected. For debugging purposes
- * and selective error catching, it is useful to make reason
- * an instanceof {@see Error}.
- *
- * @param {Error|String|*} [reason]
- * @returns {Lofte}
- * @since 1.0
- * @public
- * @static
- */
-Lofte.reject = function (reason) {
-    return new Lofte(function (resolve, reject) {
-        reject(reason)
-    })
-}
-/**
- * Returns a Lofte that is resolved.
- *
- * @param {*|Lofte} [value]
- * @returns {Lofte}
- * @since 1.0
- * @public
- * @static
- */
-Lofte.resolve = function (value) {
-    return new Lofte(function (resolve) {
-        resolve(value)
-    })
-}
 //noinspection SpellCheckingInspection
 /**
+ * NOT STANDARD
+ * 
  * Make a function return a promise.
  *
  * Useful for callback functions
@@ -473,11 +502,12 @@ Lofte.promisify = function (fn, argumentCount, hasErrorPar) {
                 else if (err) reject(err)
                 else resolve(res)
             })
-            const result = fn.apply(self, args)
+            var result = fn.apply(self, args)
             if (result) resolve(result)
-        });
+        })
     }
 }
+//noinspection SpellCheckingInspection,JSValidateJSDoc
 /**
  * Make asynchronous code look like synchronous with es6 generators.
  * Pass arguments the the first execution of the
@@ -501,13 +531,14 @@ Lofte.flow = function (generator) {
     function exec(val) {
         return iterate(generator[this](val))
     }
+    //noinspection JSUnresolvedFunction
     return iterate(generator.next())
 }
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
     module.exports = Lofte
 else//noinspection JSUnresolvedVariable
-if (typeof define === 'function' && define.amd) //noinspection JSUnresolvedFunction,JSCheckFunctionSignatures
+if (typeof define === 'function' && define.amd) //noinspection JSUnresolvedFunction,JSCheckFunctionSignatures,SpellCheckingInspection
     define('Lofte', [], function () {
         return Lofte
     })

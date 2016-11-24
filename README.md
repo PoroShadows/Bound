@@ -1,5 +1,18 @@
-<a href="https://promisesaplus.com/"><img src="https://promisesaplus.com/assets/logo-small.png" alt="Promises/A+ logo"title="Promises/A+ 1.0 compliant" align="right"/></a>
+[![Promises/A+ 1.0 compliant](https://promisesaplus.com/assets/logo-small.png "Promises/A+ logo")](https://promisesaplus.com/)
 # Lofte
-A promise library implemanting the Promises/A+ specification
+A promise library implementing the Promises/A+ specification and a little more
 
-See [wiki](https://github.com/PoroShadows/Lofte/wiki) for more
+
+
+
+
+
+
+
+
+
+
+
+See ~~[wiki][wiki]~~ for more
+
+[wiki]: https://github.com/PoroShadows/Lofte/wiki "Lofte wiki"

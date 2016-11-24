@@ -1,14 +1,14 @@
 {
   "name": "lofte",
   "version": "1.0.0",
-  "description": "A promise library implemanting the Promises/A+ specification and more",
+  "description": "A promise library implemanting the Promises/A+ specification and a little more",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jasmine"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PoroShadows/Bound.git"
+    "url": "git+https://github.com/PoroShadows/Lofte.git"
   },
   "keywords": [
     "Löfte",
@@ -18,7 +18,11 @@
   "author": "Martin Hövre <sickan843@live.se>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/PoroShadows/Bound/issues"
+    "url": "https://github.com/PoroShadows/Lofte/issues"
   },
-  "homepage": "https://github.com/PoroShadows/Bound#readme"
+  "homepage": "https://github.com/PoroShadows/Lofte#readme",
+  "devDependencies": {
+    "jasmine": "^2.5.2",
+    "jasmine-node": "^1.14.5"
+  }
 }
