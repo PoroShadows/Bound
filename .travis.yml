@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+  - "node"
+  - "iojs"
+  - "6"
+  - "5"
+  - "4"
+before_script:
+  - npm install -g jasmine
+  - touch ./.babelrc && echo "{\n\t"presets": ["es2015"]\n}" > .babelrc
+script: gulp

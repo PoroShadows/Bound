@@ -119,7 +119,7 @@ describe('Lofte tests', function () {
             new Lofte(function (resolve) {
                 resolve('a value')
             }).callback(function (error, value) {
-                expect(error).toBeUndefined()
+                expect(error).toBeNull()
                 expect(value).toBe('a value')
                 done()
             })
