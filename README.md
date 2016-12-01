@@ -19,6 +19,8 @@ If you do not know anything about promises I recommend you check out the [MDN][u
     - [`delay`](#method-delay)
     - [`cancel`](#method-cancel)
     - [`callback`](#method-callback)
+    - [`Lofte.promisify`](#loftepromisify)
+    - [`Lofte.flow`](#lofteflow)
 
 ## A beginning example
 of how it is to work with a promise
