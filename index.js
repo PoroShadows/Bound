@@ -4,45 +4,53 @@
  *
  * The function onCancel takes a function that runs when the promise is canceled
  *
- * @param {function(resolve, reject, onCancel)} resolver
+ * @param {function(resolve, reject, onCancel, notify)} resolver
  * @returns {Lofte}
  * @public
  * @constructor
  */
 function Lofte(resolver) {
     /**
-     * @callback then
-     * @param {*} value
-     * @returns {*|void}
+     * @callback onResolved
+     * @param [result]
      */
     /**
-     * @callback catch
-     * @param {Error|String|*} reason
-     * @returns {*|void}
+     * @callback onRejected
+     * @param [reason]
      */
     /**
-     * @callback callback
-     * @param {(null|Error|String|*)} [error]
-     * @param {*} [value]
+     * @callback onNotify
+     * @param [value]
      */
-    // 0 = pending, 1 = resolved, 2 = rejected, 3 = fulfilled, 4 = canceled
-    var state = 0
-    var value
-    var deferred
-    var cancellationFunction = function () {}
-    var done = false
 
+    // 0 = pending, 1 = resolved, 2 = rejected, 3 = fulfilled, 4 = canceled
     /**
-     * Specify the function called when the promise is canceled.
-     * If this is not called then the promise is not cancellable.
      *
-     * @param {Function} fn - The function called upon promise cancellation
-     * @returns {void}
-     * @public
+     * @type {Number}
      */
-    function onCancel(fn) {
-        cancellationFunction = fn
-    }
+    var state = 0
+    /**
+     * @type {*}
+     */
+    var value
+    /**
+     * @typedef {Object} Handler
+     * @property {onResolved} onResolved
+     * @property {onRejected} onRejected
+     * @property {Function} resolve
+     * @property {Function} reject
+     */
+    /**
+     *
+     * @type {Handler[]}
+     */
+    var handlers = []
+    /**
+     *
+     * @type {Function[]}
+     */
+    var listeners = []
+    var cancellationFunction = function () {}
 
     /**
      * Resole the promise with a value.
@@ -57,9 +65,8 @@ function Lofte(resolver) {
                 return newValue.then(resolve, reject)
             state = 1
             value = newValue
-
-            if (deferred)
-                handle(deferred)
+            handlers.forEach(handle)
+            handlers = []
         } catch (e) {
             reject(e)
         }
@@ -75,48 +82,52 @@ function Lofte(resolver) {
     function reject(reason) {
         state = 2
         value = reason
+        handlers.forEach(handle)
+        handlers = []
+    }
 
-        if (deferred)
-            handle(deferred)
+    function notify(value) {
+        try {
+            for (var i = 0, listener = listeners[i]; i < listeners.length; i++, listener = listeners[i])
+                listener(value)
+        } catch (error) {
+            reject(error)
+        }
+    }
+
+    /**
+     * Specify the function called when the Promise is canceled.
+     * If this is not called then the Promise is not cancellable.
+     *
+     * @param {Function} fn - The function called upon Promise cancellation
+     * @returns {void}
+     * @public
+     */
+    function onCancel(fn) {
+        cancellationFunction = fn
     }
 
     /**
      * The central handler
      *
-     * @param {Object} handler
-     * @param {Function} handler.onResolved
-     * @param {Function} handler.onRejected
-     * @param {Function} handler.resolve
-     * @param {Function} handler.reject
+     * @param {Handler} handler
      */
     function handle(handler) {
-        if (state === 0)
-            return deferred = handler
-        if (typeof process !== 'undefined')
-            process.nextTick(exec)
-        else
-            setTimeout(exec, 1)
-
-        function exec() {
-            if (!done) {
-                done = true
-                var isResolved = state === 1,
-                    handlerFN = isResolved ? handler.onResolved : handler.onRejected
-
-                if (!handlerFN)
-                    return handler[isResolved ? 'resolve' : 'reject'](value)
-
-                var ret
+        if (state === 0) {
+            handlers.push(handler)
+        } else {
+            var fnHandler = state === 1 ? handler.onResolved : state === 2 ? handler.onRejected : undefined
+            if (typeof fnHandler === 'function') {
                 try {
-                    ret = handlerFN(value)
-                    if (state > 3)
-                        handler.resolve(ret)
-                } catch (e) {
-                    if (state > 3)
-                        handler.reject(e)
+                    return handler.resolve(fnHandler(value))
+                } catch (ex) {
+                    return handler.reject(ex)
                 }
-                if (state > 3) state = 3
             }
+            if (state === 1)
+                return handler.resolve(value)
+            if (state === 2)
+                return handler.reject(value)
         }
     }
 
@@ -124,33 +135,37 @@ function Lofte(resolver) {
     /**
      * Resolve what to do with the value
      *
-     * @param {then} [onResolved]
-     * @param {catch} [onRejected]
+     * @param {onResolved} [onResolved]
+     * @param {onRejected} [onRejected]
      * @returns {Lofte}
-     * @public
      */
     this.then = function (onResolved, onRejected) {
         return new Lofte(function (resolve, reject) {
-            //noinspection JSCheckFunctionSignatures
-            handle({
-                onResolved: onResolved,
-                onRejected: onRejected,
-                resolve: resolve,
-                reject: reject
-            })
+            if (typeof process !== 'undefined')
+                process.nextTick(run)
+            else
+                setTimeout(run, 0)
+            function run() {
+                handle({
+                    onResolved: onResolved,
+                    onRejected: onRejected,
+                    resolve: resolve,
+                    reject: reject
+                })
+            }
         })
     }
     //noinspection SpellCheckingInspection
     /**
-     * Can be useful for error handling in your promise
+     * Can be useful for error handling in your Promise
      * composition.
      *
-     * @param {catch} [onRejected]
+     * @param {onRejected} [onRejected]
      * @returns {Lofte}
      * @public
      */
     this.catch = function (onRejected) {
-        return this.then(null, onRejected)
+        return this.then(undefined, onRejected)
     }
 
     //noinspection JSUnusedGlobalSymbols
@@ -213,6 +228,33 @@ function Lofte(resolver) {
     this.isCanceled = function () {
         return state == 4
     }
+    //noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
+    /**
+     * Get progression notifications
+     *
+     * @param {Function} handler
+     * @returns {Lofte}
+     */
+    this.progress = function (handler) {
+        if (typeof handler === 'function')
+            listeners.push(handler)
+        return this
+    }
+    //noinspection JSUnusedGlobalSymbols
+    /**
+     * NOT STANDARD
+     * Do not expect this to work in other Promise libraries.
+     *
+     * Cancels the promise if it is cancelable
+     *
+     * @returns {void}
+     * @throws {ReferenceError} If the promise is not cancelable
+     * @public
+     */
+    this.cancel = function() {
+        cancellationFunction()
+        state = 4
+    }
     /**
      * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
@@ -230,21 +272,6 @@ function Lofte(resolver) {
         }).catch(function (reason) {
             cb.call(ctx, reason)
         })
-    }
-    //noinspection JSUnusedGlobalSymbols
-    /**
-     * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
-     *
-     * Cancels the promise if it is cancelable
-     *
-     * @returns {void}
-     * @throws {ReferenceError} If the promise is not cancelable
-     * @public
-     */
-    this.cancel = function() {
-        cancellationFunction()
-        state = 4
     }
     //noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
     /**
@@ -265,8 +292,7 @@ function Lofte(resolver) {
         })
     }
 
-    //noinspection JSCheckFunctionSignatures
-    resolver(resolve, reject, onCancel)
+    resolver(resolve, reject, onCancel, notify)
 }
 
 //noinspection SpellCheckingInspection
@@ -389,7 +415,7 @@ Lofte.race = function (iterable) {
 //noinspection SpellCheckingInspection
 /**
  * NOT STANDARD
- * 
+ *
  * Make a function return a promise.
  *
  * Useful for callback functions

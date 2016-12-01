@@ -1,6 +1,6 @@
 {
   "name": "lofte",
-  "version": "1.1.5",
+  "version": "1.2.6",
   "description": "A promise library implemanting the Promises/A+ specification and a little more",
   "main": "index.js",
   "tonicExampleFilename": "example.js",
@@ -12,9 +12,14 @@
     "url": "git+https://github.com/PoroShadows/Lofte.git"
   },
   "keywords": [
-    "Löfte",
-    "Lofte",
-    "Promise"
+    "löfte",
+    "promise",
+    "promises",
+    "promises-a",
+    "promises-aplus",
+    "cancelable",
+    "progress",
+    "flow control"
   ],
   "author": "Martin Hövre <sickan843@live.se>",
   "license": "MIT",
