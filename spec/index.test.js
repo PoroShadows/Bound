@@ -155,9 +155,9 @@ describe('Lofte tests', function () {
             })
         })
     })
-    describe('function promisify', function () {
-        it('', function (done) {
-
-        })
-    })
+//    describe('function promisify', function () {
+//        it('', function (done) {
+//
+//        })
+//    })
 })
