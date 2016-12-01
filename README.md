@@ -39,9 +39,7 @@ Lofte.resolve("Supports")
 - (Hopefully a cdn release)
 
 ## API
-Wait there is more than the standards O.O. What else could this entail
-library would this be if it did not have more than the standard. It
- wouldn't be as interesting as the rest.
+Wait there is more than the standards O.O.
 
 One thing to note is that the `race` method do not get stuck if the 
 iterable is empty. It just resolves directly.
