@@ -125,13 +125,14 @@ describe('Lofte tests', function () {
         })
     })
     describe('is cancelable', function () {
+        var spy = jasmine.createSpy('cancel')
         it('should be cancelable', function (done) {
             var lofte = new Lofte(function (resolve, reject, onCancel) {
-                onCancel(function () {
-                    // Do some stuff on cancellation
-                })
+                onCancel(spy)
             })
-            expect(lofte.isCancelable()).toBeTruthy()
+            lofte.cancel()
+            expect(spy).toHaveBeenCalled()
+            expect(lofte.isCanceled()).toBeTruthy()
             done()
         })
     })
