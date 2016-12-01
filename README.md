@@ -1,7 +1,11 @@
 # Lofte
 A promise library implementing the Promises/A+ specification and a little more
 
-[![Promises/A+ logo][img-PA+]][url-PA+][![Build Status][img-travis]][url-travis][![NPM version][img-npm]][url-npm][![NPM Downloads][img-downloads]][url-downloads][![License][img-license]][url-license]
+[![Promises/A+ logo][img-PA+]][url-PA+]
+[![Build Status][img-travis]][url-travis]
+[![NPM version][img-npm]][url-npm]
+[![NPM Downloads][img-downloads]][url-downloads]
+[![License][img-license]][url-license]
 
 If you do not know anything about promises I recommend you check out the [MDN][url-mdn-promises] article about promises.
 
@@ -61,6 +65,7 @@ lofte.isCanceled()
 
 ### Method `delay`
 **.delay(milliseconds)**
+
 Delay the execution of the promise by x number of milliseconds.
 
 ```js
@@ -71,6 +76,7 @@ Lofte.resolve('I am a second late')
 
 ### Method `cancel`
 **.cancel()**
+
 Cancel a _Lofte_ promise.
 
 ```js
@@ -87,6 +93,7 @@ const lofte = new Lofte((reolve, reject, onCancel) => {
 
 ### Method `callback`
 **.callback(function)**
+
 If you are so obsessed with callbacks that it is a drug to you. Here you go. Turn the promise into a callback.
 
 ```js
