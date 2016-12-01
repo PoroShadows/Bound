@@ -86,7 +86,7 @@ const lofte = new Lofte((reolve, reject, onCancel) => {
     const xhr = new XMLHttpRequest()
     // ...
     
-    // if the proseding is not done the promise does not truely become cancelable
+    // if the proseding is not done the promise does not truly become cancelable
     onCancel(() => {
         xhr.abort()
     })
