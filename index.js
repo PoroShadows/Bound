@@ -29,7 +29,7 @@ function Lofte(resolver) {
     var state = 0
     var value
     var deferred
-    var cancellationFunction
+    var cancellationFunction = function () {}
     var done = false
 
     /**
@@ -215,17 +215,6 @@ function Lofte(resolver) {
     }
     /**
      * NOT STANDARD
-     *
-     * Returns if the promise is cancelable
-     *
-     * @returns {Boolean}
-     * @public
-     */
-    this.isCancelable = function () {
-        return cancellationFunction != undefined
-    }
-    /**
-     * NOT STANDARD
      * Do not expect this to work in other Promise libraries.
      *
      * Make a callback from the promise.
@@ -254,10 +243,8 @@ function Lofte(resolver) {
      * @public
      */
     this.cancel = function() {
-        if (this.isCancelable()) {
-            cancellationFunction()
-            state = 4
-        } else console.error(new ReferenceError('Tried to cancel non cancellable promise'))
+        cancellationFunction()
+        state = 4
     }
     //noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
     /**

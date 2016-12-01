@@ -1,13 +1,10 @@
 # Lofte
 A promise library implementing the Promises/A+ specification and a little more
 
-[![Promises/A+ logo][img-PA+]][url-PA+]
-[![Build Status][img-travis]][url-travis]
-[![NPM version][img-npm]][url-npm]
-[![NPM Downloads][img-downloads]][url-downloads]
-[![License][img-license]][url-license]
+[![Promises/A+ logo][img-PA+]][url-PA+][![Build Status][img-travis]][url-travis][![NPM version][img-npm]][url-npm][![NPM Downloads][img-downloads]][url-downloads][![License][img-license]][url-license]
 
 If you do not know anything about promises I recommend you check out the [MDN][url-mdn-promises] article about promises.
+
 
 ## Quick access
 
@@ -36,8 +33,9 @@ Lofte.resolve("Supports")
 - (Hopefully a cdn release)
 
 ## API
-Wait there is more than the standards O.O. What else could this entail library would this be if it
-did not have more than the standard. It wouldn't be as interesting as the rest.
+Wait there is more than the standards O.O. What else could this entail
+library would this be if it did not have more than the standard. It
+ wouldn't be as interesting as the rest.
 
 One thing to note is that the `race` method do not get stuck if the 
 iterable is empty. It just resolves directly.
@@ -45,9 +43,11 @@ iterable is empty. It just resolves directly.
 ![One does not simply meme image][img-meme]
 
 ### Synchronous checks
-With Lofte promises you can synchronously check if it is pending, resolved, rejected, fulfilled or canceled.
+With Lofte promises you can synchronously check if it is pending, 
+resolved, rejected, fulfilled or canceled.
 
-Takes no parameters and returns a boolean based on if it in that state or not.
+Takes no parameters and returns a boolean based on if it in that state 
+or not.
 
 ```js
 const lofte = someLoftePromise()
@@ -57,21 +57,36 @@ lofte.isResolved()
 lofte.isRejected()
 lofte.isFulfilled()
 lofte.isCanceled()
-lofte.isCancelable()
 ```
 
 ### Method `delay`
-Delay the execution of the promise by x number of milliseconds
+**.delay(milliseconds)**
+Delay the execution of the promise by x number of milliseconds.
 
 ```js
-Lofte.resolve('I am a second late').delay(1000).then(console.log)
+Lofte.resolve('I am a second late')
+    .delay(1000)
+    .then(console.log)
 ```
 
 ### Method `cancel`
-Cancel a Lofte promise
+**.cancel()**
+Cancel a _Lofte_ promise.
 
+```js
+const lofte = new Lofte((reolve, reject, onCancel) => {
+    const xhr = new XMLHttpRequest()
+    // ...
+    
+    // if the proseding is not done the promise does not truely become cancelable
+    onCancel(() => {
+        xhr.abort()
+    })
+})
+```
 
 ### Method `callback`
+**.callback(function)**
 If you are so obsessed with callbacks that it is a drug to you. Here you go. Turn the promise into a callback.
 
 ```js
@@ -80,11 +95,46 @@ someFunctionThatReturnsALoftePromise().callback(function (error, value) {
 })
 ```
 
+### `Lofte.promisify`
+**Lofte.promisify(function, [argumentCount], [hasErrorPar])**
 
+Turn a function with a callback to a promise returning function
 
+```js
+const fs = require(fs)
 
+const readFile = Lofte.promisify(fs.readFile)
 
+readFile('anything.txt', 'utf-8').then(console.log)
+```
 
+### `Lofte.flow`
+**Lofte.flow(generator)**
+
+Basically makes coroutines with es6/es2015 generators
+
+```js
+// going of last example
+const readFile = Lofte.promisify(require('fs').readFile)
+
+Lofte.flow(function* () {
+    try {
+        const files = yield Lofte.all([
+            readFile('path/to/file1.txt', 'utf-8'),
+            readFile('path/to/file2.txt', 'utf-8')
+        ])
+        const file1 = files[0], file2 = files[1]
+        
+        // the same but with decomposition
+        const [file1, file2] = yield Lofte.all([
+            readFile('path/to/file1.txt', 'utf-8'),
+            readFile('path/to/file2.txt', 'utf-8')
+        ])
+    } catch (e) {
+        console.error(e)
+    }
+})
+```
 
 See ~~[wiki][url-wiki]~~ for more
 
