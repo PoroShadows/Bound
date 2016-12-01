@@ -1,7 +1,18 @@
-var Lofte = require('./index')
+var Lofte = require('./../index')
 
 describe('Lofte tests', function () {
-    describe('Lofte Promises/A+ spec', function () {
+    describe('Promises/A+ spec', function () {
+        describe('instantiation', function () {
+            it('constructs fine', function (done) {
+                new Lofte(function (resolve, reject, onCancel) {
+                    expect(resolve).toBeDefined()
+                    expect(reject).toBeDefined()
+                    // Not from the spec but should be tested anyway
+                    expect(onCancel).toBeDefined()
+                    done()
+                })
+            })
+        })
         describe('function resolve', function () {
             it('returns 2', function (done) {
                 Lofte.resolve(2).then(function (value) {
@@ -12,7 +23,7 @@ describe('Lofte tests', function () {
         })
         describe('Lofte', function () {
             describe('method then', function () {
-                it('works normally?', function (done) {
+                it('works normally', function (done) {
                     new Lofte(function (resolve) {
                         resolve('a value')
                     }).then(function (value) {
@@ -20,7 +31,7 @@ describe('Lofte tests', function () {
                         done()
                     })
                 })
-                it('works with rejection?', function (done) {
+                it('works with rejection', function (done) {
                     new Lofte(function (resolve, reject) {
                         reject('an error')
                     }).then(null, function (reason) {
@@ -30,7 +41,7 @@ describe('Lofte tests', function () {
                 })
             })
             describe('method catch', function () {
-                it('works with rejection?', function (done) {
+                it('works normally', function (done) {
                     new Lofte(function (resolve, reject) {
                         reject('an error')
                     }).catch(function (reason) {
@@ -49,7 +60,7 @@ describe('Lofte tests', function () {
             })
         })
         describe('function all', function () {
-            it('returns a array of 1 (after 100ms) 0 (after 600ms) "test" (after 400ms) and false (after 800ms)', function (done) {
+            it('returns a array of 1, 0, "test" and false in order', function (done) {
                 function timeout(value, ms) {
                     return new Lofte(function (resolve) {
                         setTimeout(function () {
@@ -75,7 +86,6 @@ describe('Lofte tests', function () {
                     done()
                 })
             })
-
             it('tests to see if it has fail-fast behavior', function (done) {
                 var p1 = new Lofte(function (resolve) {setTimeout(resolve, 100, "one")})
                 var p2 = new Lofte(function (resolve) {setTimeout(resolve, 200, "two")})
@@ -114,8 +124,19 @@ describe('Lofte tests', function () {
             })
         })
     })
+    describe('is cancelable', function () {
+        it('should be cancelable', function (done) {
+            var lofte = new Lofte(function (resolve, reject, onCancel) {
+                onCancel(function () {
+                    // Do some stuff on cancellation
+                })
+            })
+            expect(lofte.isCancelable()).toBeTruthy()
+            done()
+        })
+    })
     describe('function callback', function () {
-        it('works normally?', function (done) {
+        it('works normally', function (done) {
             new Lofte(function (resolve) {
                 resolve('a value')
             }).callback(function (error, value) {
@@ -124,7 +145,7 @@ describe('Lofte tests', function () {
                 done()
             })
         })
-        it('works with rejection?', function (done) {
+        it('works with rejection', function (done) {
             new Lofte(function (resolve, reject) {
                 reject('an error')
             }).callback(function (error, value) {
@@ -135,7 +156,7 @@ describe('Lofte tests', function () {
         })
     })
     describe('function promisify', function () {
-        it('', function () {
+        it('', function (done) {
 
         })
     })

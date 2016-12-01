@@ -145,9 +145,6 @@ function Lofte(resolver) {
      * Can be useful for error handling in your promise
      * composition.
      *
-     * The Error type is not a standard parameter!!!
-     * Catch only if it is a specific error *.catch(type, onRejected)
-     *
      * @param {catch} [onRejected]
      * @returns {Lofte}
      * @public
@@ -262,81 +259,6 @@ function Lofte(resolver) {
             state = 4
         } else console.error(new ReferenceError('Tried to cancel non cancellable promise'))
     }
-    function arrayWrapper(fn, ctx, func) {
-        var temp = value
-        if (!isArray(value))
-            temp = [value]
-        temp = temp[func](fn, ctx)
-        value = isArray(temp) && temp.length == 1 ? temp[0] : temp
-        function isArray() {
-            return Array.isArray(value) || typeof value === 'object' && 'length' in value && typeof length === 'number' && value.length - 1 in value
-        }
-    }
-
-    //noinspection SpellCheckingInspection
-    /**
-     * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
-     *
-     * Same as Array.prototype.map
-     *
-     * @param {Function} fn
-     * @param {*} [ctx]
-     * @returns {Lofte}
-     * @public
-     */
-    this.map = function (fn, ctx) {
-        arrayWrapper(fn, ctx, 'map')
-        return this
-    }
-    //noinspection SpellCheckingInspection
-    /**
-     * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
-     *
-     * Same as Array.prototype.reduce
-     *
-     * @param {Function} fn
-     * @param {*} [ctx]
-     * @returns {Lofte}
-     * @public
-     */
-    this.reduce = function (fn, ctx) {
-        arrayWrapper(fn, ctx, 'reduce')
-        return this
-    }
-    //noinspection SpellCheckingInspection
-    /**
-     * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
-     *
-     * Same as Array.prototype.filter
-     *
-     * @param {Function} fn
-     * @param {*} [ctx]
-     * @returns {Lofte}
-     * @public
-     */
-    this.filter = function (fn, ctx) {
-        arrayWrapper(fn, ctx, 'filter')
-        return this
-    }
-    //noinspection SpellCheckingInspection
-    /**
-     * NOT STANDARD
-     * Do not expect this to work in other Promise libraries.
-     *
-     * Same as Array.prototype.some
-     *
-     * @param {Function} fn
-     * @param {*} [ctx]
-     * @returns {Lofte}
-     * @public
-     */
-    this.some = function (fn, ctx) {
-        arrayWrapper(fn, ctx, 'some')
-        return this
-    }
     //noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
     /**
      * NOT STANDARD
@@ -438,9 +360,10 @@ Lofte.all = function (iterable) {
             //noinspection JSUnresolvedVariable,JSUnresolvedFunction
             while (!(iteration = iterator.next()).done)
                 each(iteration.value)
-        }
-        for (var i = 0; i < iterable.length; i++)
-            each(iterable[i])
+        } else if ('length' in iterable && iterable.length > 0)
+            for (var i = 0; i < iterable.length; i++)
+                each(iterable[i])
+        else resolve()
     })
 }
 //noinspection JSValidateJSDoc,SpellCheckingInspection
@@ -465,15 +388,17 @@ Lofte.race = function (iterable) {
             //noinspection JSUnresolvedVariable,JSUnresolvedFunction
             while (!(iteration = iterator.next()).done)
                 each(iteration.value)
-        }
-        for (var i = 0; i < iterable.length; i++)
-            each(iterable[i])
+        } else if ('length' in iterable && iterable.length > 0)
+            for (var i = 0; i < iterable.length; i++)
+                each(iterable[i])
+        else resolve()
         function each(value) {
             //noinspection JSCheckFunctionSignatures
             Lofte.resolve(value).then(resolve).catch(reject)
         }
     })
 }
+
 //noinspection SpellCheckingInspection
 /**
  * NOT STANDARD
@@ -509,6 +434,8 @@ Lofte.promisify = function (fn, argumentCount, hasErrorPar) {
 }
 //noinspection SpellCheckingInspection,JSValidateJSDoc
 /**
+ * NOT STANDARD
+ *
  * Make asynchronous code look like synchronous with es6 generators.
  * Pass arguments the the first execution of the
  * generator after the first parameter.
