@@ -122,11 +122,21 @@ describe('Lofte tests', function () {
                     done.fail('Should not have been called')
                 })
             })
+            it('(not in spec) can be canceled', function (done) {
+                var spy = jasmine.createSpy('cancel')
+                var lofte = new Lofte(function (resolve, reject, onCancel) {
+                    onCancel(spy)
+                })
+                lofte.cancel()
+                expect(spy).toHaveBeenCalled()
+                expect(lofte.isCanceled()).toBeTruthy()
+                done()
+            })
         })
     })
     describe('is cancelable', function () {
-        var spy = jasmine.createSpy('cancel')
         it('should be cancelable', function (done) {
+            var spy = jasmine.createSpy('cancel')
             var lofte = new Lofte(function (resolve, reject, onCancel) {
                 onCancel(spy)
             })

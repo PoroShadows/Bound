@@ -88,10 +88,10 @@ function Lofte(resolver) {
      * Resole the promise with a value or not
      * your choice.
      *
+     * @since 1.0
      * @param {?*} [newValue]
      * @returns {*}
      * @public
-     * @since 1.0
      */
     function resolve(newValue) {
         try {
@@ -110,10 +110,10 @@ function Lofte(resolver) {
      * Reject the promise with a error/reason
      * or not your choice.
      *
+     * @since 1.0
      * @param {?(Error|String)} [reason]
      * @returns {void}
      * @public
-     * @since 1.0
      */
     function reject(reason) {
         state = 2
@@ -128,10 +128,10 @@ function Lofte(resolver) {
      * Notification, progression or both
      * progression notification.
      *
+     * @since 1.2
      * @param {?*} value
      * @returns {(*|void)}
      * @public
-     * @since 1.2.1
      */
     function notify(value) {
         try {
@@ -147,12 +147,12 @@ function Lofte(resolver) {
      * Promise is canceled. If this is not
      * called then the Promise is not cancellable.
      *
+     * @since 1.1
      * @param {Function} fn
      * The function called upon Promise cancellation
      *
      * @returns {void}
      * @public
-     * @since 1.1
      */
     function onCancel(fn) {
         cancellationFunction = fn
@@ -193,15 +193,24 @@ function Lofte(resolver) {
         }
     }
 
+    function arrayLikeFunction(promise, fnName, args) {
+        return promise.then(function (value) {
+            var arr = Array.isArray(value) ? value : [value]
+            arr = Array.prototype[fnName].apply(arr, args)
+            return arr.length === 1 ? arr[0] : arr
+        })
+    }
+
     //noinspection SpellCheckingInspection
     /**
      * Resolve what to do with the value
      *
+     * @since 1.0
+     * @api
      * @param {onResolved} [onResolved]
      * @param {onRejected} [onRejected]
      * @returns {Lofte}
      * @public
-     * @since 1.0
      */
     this.then = function (onResolved, onRejected) {
         return new Lofte(function (resolve, reject) {
@@ -218,10 +227,10 @@ function Lofte(resolver) {
      * Can be useful for error handling in your Promise
      * composition.
      *
+     * @since 1.0
      * @param {onRejected} [onRejected]
      * @returns {Lofte}
      * @public
-     * @since 1.0
      */
     this.catch = function (onRejected) {
         return this.then(null, onRejected)
@@ -232,9 +241,9 @@ function Lofte(resolver) {
      * If the promise is pending
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @returns {Boolean}
      * @public
-     * @since 1.0
      */
     this.isPending = function () {
         return state == 0
@@ -244,9 +253,9 @@ function Lofte(resolver) {
      * If the promise has resolved
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @returns {Boolean}
      * @public
-     * @since 1.0
      */
     this.isResolved = function () {
         return state == 1
@@ -256,9 +265,9 @@ function Lofte(resolver) {
      * If the promise has rejected
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @returns {Boolean}
      * @public
-     * @since 1.0
      */
     this.isRejected = function () {
         return state == 2
@@ -268,9 +277,9 @@ function Lofte(resolver) {
      * If the promise has fulfilled
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @returns {Boolean}
      * @public
-     * @since 1.0
      */
     this.isFulfilled = function () {
         return state == 3
@@ -280,9 +289,9 @@ function Lofte(resolver) {
      * If the promise has resolved
      *
      * NOT STANDARD FUNCTION
+     * @since 1.1
      * @returns {Boolean}
      * @public
-     * @since 1.1
      */
     this.isCanceled = function () {
         return state == 4
@@ -291,11 +300,11 @@ function Lofte(resolver) {
      * Make a callback from the promise.
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @param {Callback} cb
      * @param {*} [ctx]
      * @returns {void}
      * @public
-     * @since 1.0
      */
     this.callback = function (cb, ctx) {
         this.then(function (value) {
@@ -309,10 +318,10 @@ function Lofte(resolver) {
      * Delay the execution by x amount of milliseconds.
      *
      * NOT STANDARD FUNCTION
+     * @since 1.0
      * @param {Number} ms
      * @returns {Lofte}
      * @public
-     * @since 1.0
      */
     this.delay = function (ms) {
         return new Lofte(function (resolve) {
@@ -326,6 +335,7 @@ function Lofte(resolver) {
      * Cancels the promise
      *
      * NOT STANDARD FUNCTION
+     * @since 1.1
      * @returns {void}
      * @throws {ReferenceError} If the promise is not cancelable
      * @public
@@ -338,25 +348,81 @@ function Lofte(resolver) {
     /**
      * Get progression notifications
      *
-     * @param {Function} handler
+     * @since 1.2
+     * @param {...Function} handler
      * @returns {Lofte}
      * @public
-     * @since 1.2
      */
     this.progress = function (handler) {
-        if (typeof handler === 'function')
-            listeners.push(handler)
+        for (var i = 0, handle = arguments[i]; i < arguments.length; i++, handler = arguments[i])
+            if (typeof handle === 'function')
+                listeners.push(handle)
         return this
     }
+    //noinspection SpellCheckingInspection
+    /**
+     * Like normal array reduce.
+     *
+     * If the current value is not an
+     * array (Array.isArray) it wraps
+     * the value in a array
+     *
+     * @since 1.3
+     * @param {function(*, *=, number=, Array=)} callback
+     * @param {*} [initialValue]
+     * @returns {Lofte}
+     * @public
+     */
+    this.reduce = function (callback, initialValue) {
+        return arrayLikeFunction(this, 'reduce', [callback, initialValue])
+    }
+    //noinspection SpellCheckingInspection
+    /**
+     * Like normal array filter.
+     *
+     * If the current value is not an
+     * array (Array.isArray) it wraps
+     * the value in a array
+     *
+     * @since 1.3
+     * @param {function(*=, number=, Array=)} callback
+     * @param {*} [thisArg]
+     * @return {Lofte}
+     * @public
+     */
+    this.filter = function (callback, thisArg) {
+        return arrayLikeFunction(this, 'filter', [callback, thisArg])
+    }
+    //noinspection SpellCheckingInspection
+    /**
+     * Like normal array map.
+     *
+     * If the current value is not an
+     * array (Array.isArray) it wraps
+     * the value in a array
+     *
+     * @since 1.3
+     * @param {function(*=, number=, Array=)} callback
+     * @param {*} [thisArg]
+     * @return {Lofte}
+     * @public
+     */
+    this.map = function (callback, thisArg) {
+        return arrayLikeFunction(this, 'map', [callback, thisArg])
+    }
 
-    resolver(resolve, reject, onCancel, notify)
+    try {
+        resolver(resolve, reject, onCancel, notify)
+    } catch (e) {
+        reject(e)
+    }
 }
 
 //noinspection SpellCheckingInspection
 /**
  * Returns a Lofte that is resolved.
  *
- * @param {*|Lofte} [value]
+ * @param {(*|Lofte)} [value]
  * @returns {Lofte}
  * @since 1.0
  * @public
@@ -373,7 +439,7 @@ Lofte.resolve = function (value) {
  * and selective error catching, it is useful to make reason
  * an instanceof {@see Error}.
  *
- * @param {Error|String|*} [reason]
+ * @param {(Error|String|*)} [reason]
  * @returns {Lofte}
  * @since 1.0
  * @public
@@ -412,18 +478,19 @@ Lofte.all = function (iterable) {
             canceled = true
         })
         var each = (function () {
-            function res(value) {
-                if (canceled)
-                    return
-                values[this] = value
-                resolved.push(this)
-                notify(value)
-                if (resolved.length === idx)
-                    resolve(values)
+            function res(id) {
+                return function (value) {
+                    if (canceled)
+                        return
+                    values[id] = value
+                    resolved.push(id)
+                    notify(value)
+                    if (resolved.length === idx)
+                        resolve(values)
+                }
             }
             return function (value) {
-                //noinspection JSCheckFunctionSignatures
-                Lofte.resolve(value).then(res.bind(idx++)).catch(reject)
+                Lofte.resolve(value).then(res(idx++), reject)
             }
         })()
         var values = [], resolved = []
@@ -540,7 +607,7 @@ Lofte.flow = function (generator) {
     var iterate = function (iteration) {
         //noinspection JSUnresolvedVariable
         if (iteration.done) return Lofte.resolve(iteration.value)
-        return Lofte[Array.isArray(iteration.value) ? 'all' : 'resolve'](iteration.value)
+        return Lofte.resolve(iteration.value)
             .then(exec.bind('next'))
             .catch(exec.bind('throw'))
     }
