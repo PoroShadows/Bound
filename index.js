@@ -594,9 +594,9 @@ Lofte.promisify = function (fn, argumentCount, hasErrorPar) {
  * generator after the first parameter.
  *
  * NOT STANDARD FUNCTION
+ * @since 1.0
  * @param {Generator|Function} generator
  * @returns {Lofte}
- * @since 1.0
  * @public
  * @static
  */
@@ -604,15 +604,23 @@ Lofte.flow = function (generator) {
     var args = Array.prototype.splice.call(arguments, 1)
     if (typeof generator === 'function') //noinspection JSUnresolvedFunction
         generator = generator.apply(this, args)
-    var iterate = function (iteration) {
+    function iterate(iteration) {
         //noinspection JSUnresolvedVariable
         if (iteration.done) return Lofte.resolve(iteration.value)
-        return Lofte.resolve(iteration.value)
-            .then(exec.bind('next'))
-            .catch(exec.bind('throw'))
+        var value = iteration.value
+        var promise
+        if (typeof value.then === 'function')
+            promise = value
+        else if ((typeof value === 'function' && typeof value().next === 'function' || typeof value.next === 'function') ||
+            ('length' in value && value.length > 0 && value.length - 1 in value))
+            promise = Lofte.all(value)
+        else promise = Lofte.resolve(value)
+        return promise.then(exec('next'), exec('throw'))
     }
-    function exec(val) {
-        return iterate(generator[this](val))
+    function exec(action) {
+        return function (value) {
+            iterate(generator[action](value))
+        }
     }
     //noinspection JSUnresolvedFunction
     return iterate(generator.next())
