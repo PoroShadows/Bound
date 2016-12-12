@@ -6,6 +6,8 @@ A promise library implementing the Promises/A+ specification and a little more
 [![NPM version][img-npm]][url-npm]
 [![NPM Downloads][img-downloads]][url-downloads]
 [![License][img-license]][url-license]
+[![codecov](https://codecov.io/gh/PoroShadows/Lofte/branch/master/graph/badge.svg)](https://codecov.io/gh/PoroShadows/Lofte)
+
 
 If you do not know anything about promises I recommend you check out the [MDN][url-mdn-promises] article about promises.
 
