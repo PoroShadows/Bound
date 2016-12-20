@@ -11,6 +11,9 @@
  */
 function Lofte(resolver) {
     /**
+     * @typedef {{then: Function}} Promise
+     */
+    /**
      * @callback onResolved
      * @param {*} [result]
      * @returns {(*|void)}
@@ -48,7 +51,7 @@ function Lofte(resolver) {
      * @property {reject} reject
      */
 
-    // 0 = pending, 1 = resolved, 2 = rejected, 3 = fulfilled, 4 = canceled
+    // 0 = pending, 1 = resolved, 2 = rejected, 3 = canceled
     /**
      * The state of the promise.
      *
@@ -62,13 +65,13 @@ function Lofte(resolver) {
      */
     var value
     /**
-     * The stacked handlers that are
+     * The deferred handler that is
      * going to be called when the promise
-     * is resolved.
+     * is resolved/rejected.
      *
-     * @type {Handler[]}
+     * @type {Handler}
      */
-    var handlers = []
+    var deferred
     /**
      * Listeners that listens for
      * progression notifications.
@@ -99,8 +102,9 @@ function Lofte(resolver) {
                 return newValue.then(resolve, reject)
             state = 1
             value = newValue
-            handlers.forEach(handle)
-            handlers = []
+
+            if (deferred)
+                handle(deferred)
         } catch (e) {
             reject(e)
         }
@@ -118,8 +122,9 @@ function Lofte(resolver) {
     function reject(reason) {
         state = 2
         value = reason
-        handlers.forEach(handle)
-        handlers = []
+
+        if (deferred)
+            handle(deferred)
     }
 
     /**
@@ -138,7 +143,7 @@ function Lofte(resolver) {
             for (var i = 0, listener = listeners[i]; i < listeners.length; i++, listener = listeners[i])
                 listener(value)
         } catch (error) {
-            reject(error)
+            // don't do anything
         }
     }
 
@@ -161,38 +166,50 @@ function Lofte(resolver) {
     /**
      * The central handler for the promise
      *
+     * @since 1.0
      * @param {Handler} handler
      * @returns {void}
      * @private
      */
     function handle(handler) {
-        if (state === 4)
+        if (state === 3)
             return
-        if (typeof process !== 'undefined')
+        if (typeof process !== 'undefined' && typeof process.nextTick === 'function')
             process.nextTick(run)
         else
             setTimeout(run, 0)
         function run() {
             if (state === 0) {
-                handlers.push(handler)
-            } else {
-                var fnHandler = state === 1 ? handler.onResolved : state === 2 ? handler.onRejected : undefined
-                if (typeof fnHandler === 'function') {
-                    try {
-                        //noinspection JSValidateTypes
-                        return handler.resolve(fnHandler(value))
-                    } catch (ex) {
-                        return handler.reject(ex)
-                    }
-                }
-                if (state === 1)
-                    return handler.resolve(value)
-                if (state === 2)
-                    return handler.reject(value)
+                deferred = handler
+                return
+            }
+
+            if (handler === deferred)
+                deferred = undefined
+
+            var fnHandler = state === 1 ? handler.onResolved : handler.onRejected
+
+            if (typeof fnHandler !== 'function')
+                return handler[state === 1 ? 'resolve' : 'reject'](value)
+
+            try {
+                var result = fnHandler(value)
+                handler.resolve(result)
+            } catch (ex) {
+                handler.reject(ex)
             }
         }
     }
 
+    /**
+     *
+     * @since 1.3
+     * @param {Promise} promise
+     * @param {String} fnName
+     * @param {Array.<*>} args
+     * @return {*}
+     * @private
+     */
     function arrayLikeFunction(promise, fnName, args) {
         return promise.then(function (value) {
             var arr = Array.isArray(value) ? value : [value]
@@ -206,8 +223,7 @@ function Lofte(resolver) {
      * Resolve what to do with the value
      *
      * @since 1.0
-     * @api
-     * @param {onResolved} [onResolved]
+     * @param {(onResolved|Promise)} [onResolved]
      * @param {onRejected} [onRejected]
      * @returns {Lofte}
      * @public
@@ -274,18 +290,6 @@ function Lofte(resolver) {
     }
     //noinspection JSUnusedGlobalSymbols
     /**
-     * If the promise has fulfilled
-     *
-     * NOT STANDARD FUNCTION
-     * @since 1.0
-     * @returns {Boolean}
-     * @public
-     */
-    this.isFulfilled = function () {
-        return state == 3
-    }
-    //noinspection JSUnusedGlobalSymbols
-    /**
      * If the promise has resolved
      *
      * NOT STANDARD FUNCTION
@@ -294,19 +298,22 @@ function Lofte(resolver) {
      * @public
      */
     this.isCanceled = function () {
-        return state == 4
+        return state == 3
     }
     /**
      * Make a callback from the promise.
      *
      * NOT STANDARD FUNCTION
      * @since 1.0
+     * @supported continues if no valid callback function. since 1.3
      * @param {Callback} cb
      * @param {*} [ctx]
-     * @returns {void}
+     * @returns {(void|Lofte)}
      * @public
      */
     this.callback = function (cb, ctx) {
+        if (!cb || typeof cb !== 'function')
+            return this.then()
         this.then(function (value) {
             cb.call(ctx, null, value)
         }, function (reason) {
@@ -326,7 +333,7 @@ function Lofte(resolver) {
     this.delay = function (ms) {
         return new Lofte(function (resolve) {
             setTimeout(function () {
-                resolve(this)
+                resolve(value)
             }, ms)
         })
     }
@@ -340,20 +347,21 @@ function Lofte(resolver) {
      * @throws {ReferenceError} If the promise is not cancelable
      * @public
      */
-    this.cancel = function() {
+    this.cancel = function () {
         cancellationFunction()
-        state = 4
+        state = 3
     }
     //noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
     /**
      * Get progression notifications
      *
+     * NOT STANDARD FUNCTION
      * @since 1.2
      * @param {...Function} handler
      * @returns {Lofte}
      * @public
      */
-    this.progress = function (handler) {
+    this.onNotify = function (handler) {
         for (var i = 0, handle = arguments[i]; i < arguments.length; i++, handler = arguments[i])
             if (typeof handle === 'function')
                 listeners.push(handle)
@@ -367,6 +375,7 @@ function Lofte(resolver) {
      * array (Array.isArray) it wraps
      * the value in a array
      *
+     * NOT STANDARD FUNCTION
      * @since 1.3
      * @param {function(*, *=, number=, Array=)} callback
      * @param {*} [initialValue]
@@ -384,6 +393,7 @@ function Lofte(resolver) {
      * array (Array.isArray) it wraps
      * the value in a array
      *
+     * NOT STANDARD FUNCTION
      * @since 1.3
      * @param {function(*=, number=, Array=)} callback
      * @param {*} [thisArg]
@@ -401,6 +411,7 @@ function Lofte(resolver) {
      * array (Array.isArray) it wraps
      * the value in a array
      *
+     * NOT STANDARD FUNCTION
      * @since 1.3
      * @param {function(*=, number=, Array=)} callback
      * @param {*} [thisArg]
@@ -409,6 +420,78 @@ function Lofte(resolver) {
      */
     this.map = function (callback, thisArg) {
         return arrayLikeFunction(this, 'map', [callback, thisArg])
+    }
+    /**
+     * This is exactly like then but does not return a promise
+     *
+     * NOT STANDARD FUNCTION
+     * @since 1.3
+     * @param {onResolved} [onResolved]
+     * @param {onRejected} [onRejected]
+     * @returns {void}
+     * @public
+     */
+    this.done = function (onResolved, onRejected) {
+        this.then(onResolved, onRejected)
+    }
+    //noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
+    /**
+     * Called regardless of resolution
+     *
+     * NOT STANDARD FUNCTION
+     * @since 1.3
+     * @param {Function} fn
+     * @return {Lofte}
+     * @public
+     */
+    this.finally = function (fn) {
+        return this.then(function (value) {
+            return Lofte.resolve(fn()).then(function () {
+                return value
+            })
+        }, function (err) {
+            return Lofte.resolve(fn()).then(function () {
+                throw err
+            })
+        })
+    }
+    //noinspection SpellCheckingInspection
+    /**
+     * Catch for Javascript environments
+     * that does not support keywords as
+     * variable/function name
+     *
+     * NOT STANDARD FUNCTION
+     * @since 1.3
+     * @param {onRejected} onRejected
+     * @return {Lofte}
+     * @public
+     */
+    this.fail = function (onRejected) {
+        return this.then(null, onRejected)
+    }
+    //noinspection SpellCheckingInspection
+    /**
+     * Finally for Javascript environments
+     * that does not support keywords as
+     * variable/function name
+     *
+     * NOT STANDARD FUNCTION
+     * @since 1.3
+     * @param {Function} fn
+     * @return {Lofte}
+     * @public
+     */
+    this.lastly = function (fn) {
+        return this.then(function (value) {
+            return Lofte.resolve(fn()).then(function () {
+                return value
+            })
+        }, function (err) {
+            return Lofte.resolve(fn()).then(function () {
+                throw err
+            })
+        })
     }
 
     try {
@@ -489,6 +572,7 @@ Lofte.all = function (iterable) {
                         resolve(values)
                 }
             }
+
             return function (value) {
                 Lofte.resolve(value).then(res(idx++), reject)
             }
@@ -501,9 +585,15 @@ Lofte.all = function (iterable) {
             //noinspection JSUnresolvedVariable
             var iterator = typeof iterable.next === 'function' ? iterable : iterable()
             var iteration
-            //noinspection JSUnresolvedVariable,JSUnresolvedFunction
-            while (!(iteration = iterator.next()).done && !canceled)
+            var empty = true
+            do {
+                iteration = iterator.next()
+                if (iteration.done) break
+                empty = false
                 each(iteration.value)
+            } while (!iteration.done && !canceled)
+            if (empty)
+                resolve()
         } else if ('length' in iterable && iterable.length > 0)
             for (var i = 0; i < iterable.length && !canceled; i++)
                 each(iterable[i])
@@ -545,9 +635,15 @@ Lofte.race = function (iterable) {
             //noinspection JSValidateTypes,JSUnresolvedVariable
             var iterator = typeof iterable.next === 'function' ? iterable : iterable()
             var iteration
-            //noinspection JSUnresolvedVariable,JSUnresolvedFunction
-            while (!(iteration = iterator.next()).done && !canceled)
+            var empty = true
+            do {
+                iteration = iterator.next()
+                if (iteration.done) break
+                empty = false
                 each(iteration.value)
+            } while (!iteration.done && !canceled)
+            if (empty)
+                resolve()
         } else if ('length' in iterable && iterable.length > 0)
             for (var i = 0; i < iterable.length && !canceled; i++)
                 each(iterable[i])
@@ -561,24 +657,36 @@ Lofte.race = function (iterable) {
  *
  * NOT STANDARD FUNCTION
  * @param {Function} fn
- * @param {Number} [argumentCount] - The amount of parameters the function will have
- * @param {Boolean} [hasErrorPar=true] - If the callback has error in callback
+ * @param {Object} [options]
+ * @param {Number} [options.argumentCount] - The amount of parameters the function will have
+ * @param {Boolean} [options.hasErrorPar=true] - If the callback has error in callback
+ * @param {Boolean} [options.moreCBValues=false] - If the callback has more than one callback value
  * @returns {Function}
- * @since 1.0
+ * @since 1.0 changed in 1.3
  * @public
  * @static
  */
-Lofte.promisify = function (fn, argumentCount, hasErrorPar) {
-    argumentCount = argumentCount || Infinity
-    hasErrorPar = hasErrorPar || true
+Lofte.promisify = function (fn, options) {
+    options = typeof options !== 'undefined' ? options : {}
+    options.argumentCount = typeof options.argumentCount !== 'undefined' ? options.argumentCount : Infinity
+    options.hasErrorArg = typeof options.hasErrorArg !== 'undefined' ? options.hasErrorArg : true
+    options.moreCBValues = typeof options.moreCBValues !== 'undefined' ? options.moreCBValues : false
     return function () {
-        const self = this
-        const args = Array.prototype.slice.call(arguments)
+        var self = this
+        var args = Array.prototype.slice.call(arguments)
         return new Lofte(function (resolve, reject) {
-            while (args.length && args.length > argumentCount) args.pop()
+            while (args.length && args.length > options.argumentCount) args.pop()
+            while (args.length && isFinite(options.argumentCount) && args.length < options.argumentCount)
+                args.push(undefined)
             args.push(function (err, res) {
-                if (!hasErrorPar)//noinspection JSUnresolvedFunction
-                    resolve.apply(Array.prototype.slice.call(arguments))
+                if (options.moreCBValues) {
+                    if (!options.hasErrorArg)
+                        resolve(Array.prototype.slice.call(arguments))
+                    else if (err) reject(err)
+                    else resolve(Array.prototype.slice.call(arguments, 1))
+                }
+                else if (!options.hasErrorArg)
+                    resolve(err)
                 else if (err) reject(err)
                 else resolve(res)
             })
@@ -617,11 +725,13 @@ Lofte.flow = function (generator) {
         else promise = Lofte.resolve(value)
         return promise.then(exec('next'), exec('throw'))
     }
+
     function exec(action) {
         return function (value) {
             iterate(generator[action](value))
         }
     }
+
     //noinspection JSUnresolvedFunction
     return iterate(generator.next())
 }
