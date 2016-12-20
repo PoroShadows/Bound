@@ -6,7 +6,7 @@ node_js:
   - "6"
   - "5"
   - "4"
-before_script
+before_script:
   - npm install -g istanbul
 after_success:
   - bash <(curl -s https://codecov.io/bash)
