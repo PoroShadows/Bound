@@ -605,4 +605,42 @@ describe('Lofte tests for things since version', function () {
             })
         })
     })
+    describe('1.3.0:', function () {
+        describe('callback', function () {
+            it('carries on the promise if invalid callback parameter', function (done) {
+                Lofte.resolve('success').callback({ message: 'nope does not work'}).then(function (value) {
+                    expect(value).toBe('success')
+                    done()
+                })
+            })
+        })
+        describe('reduce', function () {
+            it('reduces an array like normal', function (done) {
+                var spy = jasmine.createSpy('reduce spy 1')
+                Lofte.resolve([4, 2, 6, 7, 1]).reduce(function (prev, current, index, array) {
+                    spy(prev, current, index, array)
+                    return prev + current
+                }, 0).then(function (result) {
+                    expect(result).toEqual(20)
+                    expect(spy).toHaveBeenCalledWith(0, 4, 0, [4, 2, 6, 7, 1])
+                    expect(spy).toHaveBeenCalledWith(4, 2, 1, [4, 2, 6, 7, 1])
+                    expect(spy).toHaveBeenCalledWith(6, 6, 2, [4, 2, 6, 7, 1])
+                    expect(spy).toHaveBeenCalledWith(12, 7, 3, [4, 2, 6, 7, 1])
+                    expect(spy).toHaveBeenCalledWith(19, 1, 4, [4, 2, 6, 7, 1])
+                    done()
+                })
+            })
+            it('reduces a single value as a single item array', function (done) {
+                var spy = jasmine.createSpy('reduce spy 2')
+                Lofte.resolve(13).reduce(function (prev, current, index, array) {
+                    spy(prev, current, index, array)
+                    return prev + current
+                }, 0).then(function (result) {
+                    expect(result).toEqual(13)
+                    expect(spy).toHaveBeenCalledWith(0, 13, 0, [13])
+                    done()
+                })
+            })
+        })
+    })
 })
