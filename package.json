@@ -28,9 +28,6 @@
   },
   "homepage": "https://github.com/PoroShadows/Lofte#readme",
   "devDependencies": {
-    "jasmine": "^2.5.2",
-    "jsdom": "^9.8.3",
-    "requirejs": "^2.3.2",
-    "system": "^1.1.1"
+    "jasmine": "^2.5.2"
   }
 }
