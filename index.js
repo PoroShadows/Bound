@@ -434,30 +434,12 @@ function Lofte(resolver) {
     this.map = function (callback, thisArg) {
         return arrayLikeFunction(this, 'map', [callback, thisArg])
     }
-    /**
-     * This is exactly like then but does not return a promise
-     *
-     * NOT STANDARD FUNCTION
-     * @since 1.3
-     * @param {onResolved} [onResolved]
-     * @param {onRejected} [onRejected]
-     * @returns {void}
-     * @public
-     */
-    this.done = function (onResolved, onRejected) {
-        this.then(onResolved, onRejected).fail(function (err) {
-            if (typeof process !== 'undefined' && typeof process.nextTick === 'function')
-                process.nextTick(run)
-            else
-                setTimeout(run, 0)
-            function run() {
-                throw err
-            }
-        })
-    }
     //noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
     /**
-     * Called regardless of resolution
+     * Called regardless of resolution.
+     *
+     * If returns a rejected promise then this
+     * promise is rejected with that reason.
      *
      * NOT STANDARD FUNCTION
      * @since 1.3
@@ -495,7 +477,7 @@ function Lofte(resolver) {
     /**
      * Finally for Javascript environments
      * that does not support keywords as
-     * variable/function name
+     * variable/function names.
      *
      * NOT STANDARD FUNCTION
      * @since 1.3
@@ -741,7 +723,7 @@ Lofte.flow = function (generator) {
         if (typeof value.then === 'function')
             promise = value
         else if ((typeof value === 'function' && typeof value().next === 'function' || typeof value.next === 'function') ||
-            ('length' in value && value.length > 0 && value.length - 1 in value))
+            (typeof value === 'object' && 'length' in value && value.length > 0 && value.length - 1 in value))
             promise = Lofte.all(value)
         else promise = Lofte.resolve(value)
         return promise.then(exec('next'), exec('throw'))
@@ -757,11 +739,4 @@ Lofte.flow = function (generator) {
     return iterate(generator.next())
 }
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-    module.exports = Lofte
-else//noinspection JSUnresolvedVariable
-if (typeof define === 'function' && define.amd) //noinspection JSUnresolvedFunction,JSCheckFunctionSignatures,SpellCheckingInspection
-    define('Lofte', [], function () {
-        return Lofte
-    })
-else window.Lofte = Lofte
+module.exports = Lofte
