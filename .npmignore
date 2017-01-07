@@ -5,3 +5,4 @@ Lofte.iws
 spec/
 .travis.yml
 .gitignore
+example.js

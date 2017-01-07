@@ -6,6 +6,8 @@ A promise library implementing the Promises/A+ specification and a little more
 [![NPM version][img-npm]][url-npm]
 [![NPM Downloads][img-downloads]][url-downloads]
 [![License][img-license]][url-license]
+[![codecov][img-cc]][url-cc]
+
 
 If you do not know anything about promises I recommend you check out the [MDN][url-mdn-promises] article about promises.
 
@@ -152,10 +154,12 @@ See ~~[wiki][url-wiki]~~ for more
 [url-npm]: https://npmjs.org/package/lofte
 [url-license]: LICENSE.md
 [url-downloads]: https://npmjs.org/package/lofte
+[url-cc]: https://codecov.io/gh/PoroShadows/Lofte
 
 [img-PA+]: https://promisesaplus.com/assets/logo-small.png "Promises/A+ 1.0 compliant"
 [img-travis]: https://img.shields.io/travis/PoroShadows/Lofte.svg?style=flat-square
 [img-npm]: https://img.shields.io/npm/v/lofte.svg?style=flat-square
-[img-license]: http://img.shields.io/npm/l/lofte.svg?style=flat-square
-[img-downloads]: http://img.shields.io/npm/dm/lofte.svg?style=flat-square
+[img-license]: https://img.shields.io/npm/l/lofte.svg?style=flat-square
+[img-downloads]: https://img.shields.io/npm/dm/lofte.svg?style=flat-square
 [img-meme]: https://i.imgflip.com/1f2lkm.jpg "Wow so original"
+[img-cc]: https://img.shields.io/codecov/c/github/PoroShadows/Lofte/experimental.svg?style=flat-square
