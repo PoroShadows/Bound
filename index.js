@@ -212,9 +212,12 @@ function Lofte(resolver) {
      */
     function arrayLikeFunction(promise, fnName, args) {
         return promise.then(function (value) {
-            var arr = Array.isArray(value) ? value : [value]
-            arr = Array.prototype[fnName].apply(arr, args)
-            return arr.length === 1 ? arr[0] : arr
+            function isArray(obj) {
+                return Array.isArray(obj) || typeof obj === 'object' && 'length' in obj && obj.length - 1 in obj
+            }
+            var wasArray, val = (wasArray = isArray(value)) ? value : [value]
+            val = Array.prototype[fnName].apply(val, args)
+            return isArray(val) && val.length === 1 ? wasArray ? val : val[0] : val
         })
     }
 
@@ -331,10 +334,18 @@ function Lofte(resolver) {
      * @public
      */
     this.delay = function (ms) {
-        return new Lofte(function (resolve) {
-            setTimeout(function () {
-                resolve(value)
-            }, ms)
+        return this.then(function (result) {
+            return new Lofte(function (resolve) {
+                setTimeout(function () {
+                    resolve(result)
+                }, ms)
+            })
+        }, function (reason) {
+            return new Lofte(function (resolve, reject) {
+                setTimeout(function () {
+                    reject(reason)
+                }, ms)
+            })
         })
     }
     //noinspection JSUnusedGlobalSymbols
@@ -365,6 +376,8 @@ function Lofte(resolver) {
         for (var i = 0, handle = arguments[i]; i < arguments.length; i++, handler = arguments[i])
             if (typeof handle === 'function')
                 listeners.push(handle)
+            else
+                throw new TypeError('onNotify: argument ' + (i + 1) + ' is not a function')
         return this
     }
     //noinspection SpellCheckingInspection
@@ -432,7 +445,15 @@ function Lofte(resolver) {
      * @public
      */
     this.done = function (onResolved, onRejected) {
-        this.then(onResolved, onRejected)
+        this.then(onResolved, onRejected).fail(function (err) {
+            if (typeof process !== 'undefined' && typeof process.nextTick === 'function')
+                process.nextTick(run)
+            else
+                setTimeout(run, 0)
+            function run() {
+                throw err
+            }
+        })
     }
     //noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
     /**

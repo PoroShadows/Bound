@@ -421,6 +421,15 @@ describe('Lofte tests for things since version', function () {
                     done()
                 }, 110)
             })
+            it('delays rejections (and does not make it set to a resolved state)', function (done) {
+                var spyRes = jasmine.createSpy('res')
+                var spyRej = jasmine.createSpy('rej')
+                Lofte.reject('some error').delay(100).then(spyRes, spyRej).then(function () {
+                    expect(spyRej).toHaveBeenCalledWith('some error')
+                    expect(spyRes.calls.any()).toBeFalsy()
+                    done()
+                })
+            })
         })
         describe('method promisify', function () {
             it('constructs a promise returning function that resolves', function (done) {
@@ -586,6 +595,10 @@ describe('Lofte tests for things since version', function () {
             })
         })
         describe('notifications', function () {
+            it('triggers an exception when supplied a non function handler', function (done) {
+                expect(function () {Lofte.resolve().onNotify({})}).toThrow(new TypeError('onNotify: argument 1 is not a function'))
+                Lofte.resolve().delay(1).then(done)
+            })
             it('registers a listener and gets fired on progress event', function (done) {
                 var spy1 = jasmine.createSpy('progression')
                 var spy2 = jasmine.createSpy('complete')
@@ -606,6 +619,27 @@ describe('Lofte tests for things since version', function () {
         })
     })
     describe('1.3.0:', function () {
+        describe('inner handle', function () {
+            it('does not handle more after promise is canceled', function (done) {
+                var spy = jasmine.createSpy('cancellation spy')
+                var promise = Lofte.resolve()
+                promise.cancel()
+                promise.then(spy, spy)
+                Lofte.resolve().delay(1).then(function () {
+                    expect(spy.calls.any()).toBeFalsy()
+                    done()
+                })
+            })
+            it('works with setTimeout', function (done) {
+                var original = process.nextTick
+                process.nextTick = null
+                Lofte.resolve().then(function () {
+                    process.nextTick = original
+                    done()
+                })
+
+            })
+        })
         describe('callback', function () {
             it('carries on the promise if invalid callback parameter', function (done) {
                 Lofte.resolve('success').callback({ message: 'nope does not work'}).then(function (value) {
@@ -615,29 +649,169 @@ describe('Lofte tests for things since version', function () {
             })
         })
         describe('reduce', function () {
-            it('reduces an array like normal', function (done) {
+            it('reduces an array', function (done) {
                 var spy = jasmine.createSpy('reduce spy 1')
-                Lofte.resolve([4, 2, 6, 7, 1]).reduce(function (prev, current, index, array) {
+                var array = [4, 2, 6, 7, 1]
+                Lofte.resolve(array).reduce(function (prev, current, index, array) {
                     spy(prev, current, index, array)
                     return prev + current
                 }, 0).then(function (result) {
                     expect(result).toEqual(20)
-                    expect(spy).toHaveBeenCalledWith(0, 4, 0, [4, 2, 6, 7, 1])
-                    expect(spy).toHaveBeenCalledWith(4, 2, 1, [4, 2, 6, 7, 1])
-                    expect(spy).toHaveBeenCalledWith(6, 6, 2, [4, 2, 6, 7, 1])
-                    expect(spy).toHaveBeenCalledWith(12, 7, 3, [4, 2, 6, 7, 1])
-                    expect(spy).toHaveBeenCalledWith(19, 1, 4, [4, 2, 6, 7, 1])
+                    expect(spy).toHaveBeenCalledWith(0, 4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(4, 2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(12, 7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(19, 1, 4, array)
                     done()
                 })
             })
-            it('reduces a single value as a single item array', function (done) {
+            it('reduces custom made arrays', function (done) {
                 var spy = jasmine.createSpy('reduce spy 2')
+                var array = { length: 5, 0: 4, 1: 2, 2: 6, 3: 7, 4: 1}
+                Lofte.resolve(array).reduce(function (prev, current, index, array) {
+                    spy(prev, current, index, array)
+                    return prev + current
+                }, 0).then(function (result) {
+                    expect(result).toEqual(20)
+                    expect(spy).toHaveBeenCalledWith(0, 4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(4, 2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(12, 7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(19, 1, 4, array)
+                    done()
+                })
+            })
+            it('reduces with single item array', function (done) {
+                var spy = jasmine.createSpy('reduce spy 3')
+                Lofte.resolve([60]).reduce(function (prev, current, index, array) {
+                    spy(prev, current, index, array)
+                    return prev + current
+                }, 0).then(function (result) {
+                    expect(result).toEqual(60)
+                    expect(spy).toHaveBeenCalledWith(0, 60, 0, [60])
+                    done()
+                })
+            })
+            it('reduces a value', function (done) {
+                var spy = jasmine.createSpy('reduce spy 4')
                 Lofte.resolve(13).reduce(function (prev, current, index, array) {
                     spy(prev, current, index, array)
                     return prev + current
                 }, 0).then(function (result) {
                     expect(result).toEqual(13)
                     expect(spy).toHaveBeenCalledWith(0, 13, 0, [13])
+                    done()
+                })
+            })
+        })
+        describe('map', function () {
+            it('maps an array', function (done) {
+                var spy = jasmine.createSpy('map spy 1')
+                var array = [4, 2, 6, 7, 1]
+                Lofte.resolve(array).map(function (item, index, array) {
+                    spy(item, index, array)
+                    return item * 2
+                }).then(function (result) {
+                    expect(result).toEqual([8, 4, 12, 14, 2])
+                    expect(spy).toHaveBeenCalledWith(4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(1, 4, array)
+                    done()
+                })
+            })
+            it('maps custom made arrays', function (done) {
+                var spy = jasmine.createSpy('map spy 2')
+                var array = { length: 5, 0: 4, 1: 2, 2: 6, 3: 7, 4: 1}
+                Lofte.resolve(array).map(function (item, index, array) {
+                    spy(item, index, array)
+                    return item * 2
+                }).then(function (result) {
+                    expect(result).toEqual([8, 4, 12, 14, 2])
+                    expect(spy).toHaveBeenCalledWith(4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(1, 4, array)
+                    done()
+                })
+            })
+            it('maps with single item array', function (done) {
+                var spy = jasmine.createSpy('map spy 3')
+                Lofte.resolve([60]).map(function (item, index, array) {
+                    spy(item, index, array)
+                    return item * 2
+                }).then(function (result) {
+                    expect(result).toEqual([120])
+                    expect(spy).toHaveBeenCalledWith(60, 0, [60])
+                    done()
+                })
+            })
+            it('maps a value', function (done) {
+                var spy = jasmine.createSpy('map spy 4')
+                Lofte.resolve(13).map(function (item, index, array) {
+                    spy(item, index, array)
+                    return item * 2
+                }).then(function (result) {
+                    expect(result).toEqual(26)
+                    expect(spy).toHaveBeenCalledWith(13, 0, [13])
+                    done()
+                })
+            })
+        })
+        describe('filter', function () {
+            it('filters an array', function (done) {
+                var spy = jasmine.createSpy('filter spy 1')
+                var array = [4, 2, 6, 7, 1]
+                Lofte.resolve(array).filter(function (item, index, array) {
+                    spy(item, index, array)
+                    return item >= 5
+                }).then(function (result) {
+                    expect(result).toEqual([6, 7])
+                    expect(spy).toHaveBeenCalledWith(4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(1, 4, array)
+                    done()
+                })
+            })
+            it('filters custom made arrays', function (done) {
+                var spy = jasmine.createSpy('filter spy 2')
+                var array = { length: 5, 0: 4, 1: 2, 2: 6, 3: 7, 4: 1}
+                Lofte.resolve(array).filter(function (item, index, array) {
+                    spy(item, index, array)
+                    return item >= 5
+                }).then(function (result) {
+                    expect(result).toEqual([6, 7])
+                    expect(spy).toHaveBeenCalledWith(4, 0, array)
+                    expect(spy).toHaveBeenCalledWith(2, 1, array)
+                    expect(spy).toHaveBeenCalledWith(6, 2, array)
+                    expect(spy).toHaveBeenCalledWith(7, 3, array)
+                    expect(spy).toHaveBeenCalledWith(1, 4, array)
+                    done()
+                })
+            })
+            it('filters with single item array', function (done) {
+                var spy = jasmine.createSpy('filter spy 3')
+                Lofte.resolve([60]).filter(function (item, index, array) {
+                    spy(item, index, array)
+                    return item >= 5
+                }).then(function (result) {
+                    expect(result).toEqual([60])
+                    expect(spy).toHaveBeenCalledWith(60, 0, [60])
+                    done()
+                })
+            })
+            it('filters a value', function (done) {
+                var spy = jasmine.createSpy('filter spy 4')
+                Lofte.resolve(13).filter(function (item, index, array) {
+                    spy(item, index, array)
+                    return item >= 5
+                }).then(function (result) {
+                    expect(result).toEqual(13)
+                    expect(spy).toHaveBeenCalledWith(13, 0, [13])
                     done()
                 })
             })
