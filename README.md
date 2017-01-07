@@ -162,4 +162,4 @@ See ~~[wiki][url-wiki]~~ for more
 [img-license]: https://img.shields.io/npm/l/lofte.svg?style=flat-square
 [img-downloads]: https://img.shields.io/npm/dm/lofte.svg?style=flat-square
 [img-meme]: https://i.imgflip.com/1f2lkm.jpg "Wow so original"
-[img-cc]: https://img.shields.io/codecov/c/github/PoroShadows/Lofte/experimental.svg?style=flat-square
+[img-cc]: https://img.shields.io/codecov/c/github/PoroShadows/Lofte/master.svg?style=flat-square
