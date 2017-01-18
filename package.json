@@ -1,6 +1,6 @@
 {
   "name": "lofte",
-  "version": "1.3.0",
+  "version": "0.3.0",
   "description": "A promise library implemanting the Promises/A+ specification and a little more",
   "main": "index.js",
   "tonicExampleFilename": "example.js",
